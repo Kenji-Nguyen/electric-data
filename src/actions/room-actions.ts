@@ -263,3 +263,93 @@ export async function getNextRoom(currentRoomId: string, tenantId: string) {
     return { success: false, error: 'Failed to get next room. Please try again.' }
   }
 }
+
+export async function getTenantDashboard(tenantId: string) {
+  try {
+    const supabase = createServerClient()
+
+    // Get tenant details
+    const { data: tenant, error: tenantError } = await supabase
+      .from('tenants')
+      .select('*')
+      .eq('id', tenantId)
+      .single()
+
+    if (tenantError || !tenant) {
+      return { success: false, error: 'Tenant not found', data: null }
+    }
+
+    // Get rooms with devices and power calculations
+    const { data: rooms, error: roomsError } = await supabase
+      .from('rooms')
+      .select(`
+        *,
+        electrical_devices (
+          id,
+          device_name,
+          power_watts,
+          usage_hours_per_day
+        )
+      `)
+      .eq('tenant_id', tenantId)
+      .order('display_order', { ascending: true })
+
+    if (roomsError) {
+      console.error('Error fetching rooms:', roomsError)
+      return { success: false, error: 'Failed to fetch rooms', data: null }
+    }
+
+    // Calculate metrics
+    const roomsWithMetrics = (rooms || []).map(room => {
+      const devices = room.electrical_devices || []
+      const dailyWattHours = devices.reduce((total, device) => {
+        return total + (device.power_watts * device.usage_hours_per_day)
+      }, 0)
+
+      const dailyKwh = dailyWattHours / 1000
+      const monthlyKwh = dailyKwh * 30
+      const yearlyKwh = dailyKwh * 365
+
+      // Determine health status based on consumption
+      let healthStatus: 'good' | 'moderate' | 'high' = 'good'
+      if (dailyKwh > 20) healthStatus = 'high'
+      else if (dailyKwh > 10) healthStatus = 'moderate'
+
+      return {
+        ...room,
+        deviceCount: devices.length,
+        dailyKwh: Math.round(dailyKwh * 100) / 100,
+        monthlyKwh: Math.round(monthlyKwh * 100) / 100,
+        yearlyKwh: Math.round(yearlyKwh * 100) / 100,
+        healthStatus,
+        devices
+      }
+    })
+
+    // Calculate overall stats
+    const totalRooms = roomsWithMetrics.length
+    const totalDevices = roomsWithMetrics.reduce((sum, room) => sum + room.deviceCount, 0)
+    const totalDailyKwh = roomsWithMetrics.reduce((sum, room) => sum + room.dailyKwh, 0)
+    const totalMonthlyKwh = roomsWithMetrics.reduce((sum, room) => sum + room.monthlyKwh, 0)
+
+    // Estimate monthly cost (using $0.15/kWh as default)
+    const estimatedMonthlyCost = Math.round(totalMonthlyKwh * 0.15 * 100) / 100
+
+    const dashboardData = {
+      tenant,
+      rooms: roomsWithMetrics,
+      stats: {
+        totalRooms,
+        totalDevices,
+        totalDailyKwh: Math.round(totalDailyKwh * 100) / 100,
+        totalMonthlyKwh: Math.round(totalMonthlyKwh * 100) / 100,
+        estimatedMonthlyCost
+      }
+    }
+
+    return { success: true, data: dashboardData }
+  } catch (error) {
+    console.error('Error fetching tenant dashboard:', error)
+    return { success: false, error: 'Failed to fetch dashboard data. Please try again.', data: null }
+  }
+}

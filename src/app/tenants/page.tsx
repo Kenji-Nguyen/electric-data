@@ -60,7 +60,7 @@ async function TenantsContent() {
   return (
     <div className="space-y-3">
       {tenantsList.map((tenant) => (
-        <Link key={tenant.id} href={`/tenants/${tenant.id}/devices`}>
+        <Link key={tenant.id} href={`/tenants/${tenant.id}`}>
           <Card className="hover:shadow-md transition-all duration-200 active:scale-95 border-2 hover:border-primary/20">
             <CardContent className="p-6 flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -70,7 +70,7 @@ async function TenantsContent() {
                 <div>
                   <h3 className="text-lg font-semibold">{tenant.name}</h3>
                   <p className="text-sm text-gray-500">
-                    Added {new Date(tenant.createdAt).toLocaleDateString()}
+                    Added {new Date(tenant.created_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>

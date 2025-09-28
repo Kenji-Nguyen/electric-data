@@ -9,8 +9,12 @@ This application enables hotel management to track electrical devices and their 
 ### Key Features
 
 - **Multi-tenant Management**: Separate hotels/properties with isolated device data
+- **Visual Dashboard**: Comprehensive overview with room grid and health indicators
+- **Room-Centric Design**: Individual room management with device organization
+- **Power Analytics**: Real-time consumption tracking and cost estimation
 - **Mobile-First UI**: Optimized for on-the-go device input with large touch targets
 - **Device Templates**: Quick access to common electrical devices with preset power ratings
+- **Health Monitoring**: Visual indicators for room power consumption efficiency
 - **Batch Input**: Add multiple devices efficiently with real-time power calculation
 - **TypeScript Safety**: Full type safety with Supabase-generated types
 
@@ -20,6 +24,7 @@ This application enables hotel management to track electrical devices and their 
 - **Language**: TypeScript 5
 - **Database**: Supabase PostgreSQL
 - **Styling**: Tailwind CSS 4 + shadcn/ui
+- **Charts**: shadcn/ui charts (built on Recharts)
 - **Development**: Turbopack for fast builds
 - **Validation**: Zod for server-side validation
 
@@ -65,14 +70,29 @@ src/
 │   ├── layout.tsx         # Root layout with providers
 │   ├── page.tsx           # Home page
 │   ├── globals.css        # Global styles
-│   └── [routes]/          # File-based routing
+│   ├── tenants/           # Tenant management routes
+│   │   ├── page.tsx      # Tenant selection page
+│   │   └── [id]/         # Dynamic tenant routes
+│   │       ├── page.tsx  # Tenant dashboard (main view)
+│   │       ├── report/   # Power consumption reports
+│   │       └── rooms/    # Room management
+│   │           ├── page.tsx          # Rooms overview (legacy)
+│   │           ├── new/page.tsx      # Create new room
+│   │           └── [roomId]/         # Individual room routes
+│   │               ├── page.tsx      # Room details & device overview
+│   │               └── devices/      # Device management for room
 ├── components/
-│   ├── ui/                # shadcn/ui components
-│   └── [features]/        # Feature-specific components
+│   ├── ui/                # shadcn/ui components (including chart)
+│   ├── dashboard-stats.tsx           # Overview metrics cards
+│   ├── dashboard-room-grid.tsx       # Visual room grid with health indicators
+│   ├── create-room-form.tsx          # New room creation form
+│   └── [features]/        # Other feature-specific components
 ├── lib/
 │   ├── supabase.ts        # Supabase client setup and types
 │   └── utils.ts           # Utility functions
-├── actions/               # Server Actions for device operations
+├── actions/               # Server Actions for device and room operations
+│   ├── room-actions.ts    # Room CRUD + getTenantDashboard
+│   └── device-actions.ts  # Device CRUD operations
 ├── types/                 # TypeScript type definitions
 ```
 
@@ -138,7 +158,22 @@ CREATE TABLE electrical_devices (
    - Large, touch-friendly cards with hotel icons
    - Option to add new hotel
 
-2. **Add Devices** (`/tenants/[id]/devices`)
+2. **Hotel Dashboard** (`/tenants/[id]`)
+   - **Overview Stats**: Total rooms, devices, daily kWh consumption, monthly cost estimate
+   - **Room Grid**: Visual grid showing all rooms with health indicators (green/yellow/red)
+   - **Quick Actions**: Add new room, view detailed power report
+   - **Room Details**: Click any room card to navigate to room management
+
+3. **Room Management** (`/tenants/[id]/rooms/[roomId]`)
+   - **Room Overview**: Room details, power consumption stats, health status
+   - **Device List**: All devices in the room with individual consumption metrics
+   - **Device Management**: Add, edit, or remove devices for the specific room
+
+4. **Add New Room** (`/tenants/[id]/rooms/new`)
+   - **Room Creation**: Add room number and type
+   - **Direct Flow**: After creating room, automatically navigate to device addition
+
+5. **Device Management** (`/tenants/[id]/rooms/[roomId]/devices`)
    - Quick templates with common devices (LED bulbs, AC units, etc.)
    - Category-based filtering (Lighting, HVAC, Kitchen, Electronics)
    - Manual device input with power and usage validation
@@ -153,6 +188,9 @@ CREATE TABLE electrical_devices (
 - **Numeric Inputs**: Optimized keyboards for power/hours entry
 - **Visual Feedback**: Active states and loading indicators
 - **Progressive Enhancement**: Works without JavaScript
+- **Visual Health Indicators**: Color-coded room status (green=efficient, yellow=moderate, red=high usage)
+- **Grid Layout**: 2-column room grid optimized for mobile viewing
+- **Touch-Friendly Cards**: Large, tappable room cards with clear visual hierarchy
 
 ### Device Templates
 

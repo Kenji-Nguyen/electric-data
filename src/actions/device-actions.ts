@@ -47,8 +47,8 @@ export async function saveDevices(tenantId: string, devices: DeviceInput[]) {
       return { success: false, error: 'Failed to save devices to database' }
     }
 
-    // Revalidate the tenant devices page
-    revalidatePath(`/tenants/${tenantId}/devices`)
+    // Revalidate the tenant dashboard page
+    revalidatePath(`/tenants/${tenantId}`)
 
     return { success: true, message: `Successfully saved ${validatedDevices.length} device(s)` }
   } catch (error) {

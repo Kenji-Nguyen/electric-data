@@ -1,14 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Plus, Trash2, Zap, Clock, Package } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ArrowLeft, Plus, Trash2, Zap, Clock, Package, Home } from 'lucide-react'
 import Link from 'next/link'
 import { Tenant } from '@/lib/supabase'
-import { saveDevices, type DeviceInput } from '@/actions/device-actions'
+import { saveDevices, saveDevicesToRoom, type DeviceInput } from '@/actions/device-actions'
+import { getRoomsByTenant, type Room } from '@/actions/room-actions'
 
 interface Device {
   id: string
@@ -49,7 +57,30 @@ export default function DeviceInputForm({ tenant }: DeviceInputFormProps) {
     usageHoursPerDay: ''
   })
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const [selectedRoom, setSelectedRoom] = useState<string>('none')
+  const [rooms, setRooms] = useState<Room[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoadingRooms, setIsLoadingRooms] = useState(true)
+
+  // Load rooms when component mounts
+  useEffect(() => {
+    async function loadRooms() {
+      setIsLoadingRooms(true)
+      try {
+        const result = await getRoomsByTenant(tenant.id)
+        if (result.success) {
+          setRooms(result.rooms)
+        } else {
+          console.error('Failed to load rooms:', result.error)
+        }
+      } catch (error) {
+        console.error('Error loading rooms:', error)
+      } finally {
+        setIsLoadingRooms(false)
+      }
+    }
+    loadRooms()
+  }, [tenant.id])
 
   const filteredTemplates = selectedCategory === 'All'
     ? deviceTemplates
@@ -86,7 +117,14 @@ export default function DeviceInputForm({ tenant }: DeviceInputFormProps) {
         usageHoursPerDay: parseFloat(device.usageHoursPerDay)
       }))
 
-      const result = await saveDevices(tenant.id, deviceInputs)
+      let result
+      if (selectedRoom && selectedRoom !== 'none') {
+        // Save devices to specific room
+        result = await saveDevicesToRoom(tenant.id, selectedRoom, deviceInputs)
+      } else {
+        // Save devices without room assignment
+        result = await saveDevices(tenant.id, deviceInputs)
+      }
 
       if (result.success) {
         setDevices([])
@@ -118,6 +156,51 @@ export default function DeviceInputForm({ tenant }: DeviceInputFormProps) {
       </div>
 
       <div className="px-4 py-6 space-y-6">
+        {/* Room Selection */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center">
+              <Home className="mr-2 h-5 w-5" />
+              Select Room (Optional)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingRooms ? (
+              <div className="h-12 bg-gray-200 rounded animate-pulse" />
+            ) : rooms.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500 mb-3">No rooms available</p>
+                <Link href={`/tenants/${tenant.id}/rooms`}>
+                  <Button variant="outline" size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create First Room
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <Select value={selectedRoom} onValueChange={setSelectedRoom}>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Choose a room or leave blank for no assignment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No room assignment</SelectItem>
+                  {rooms.map((room) => (
+                    <SelectItem key={room.id} value={room.id}>
+                      <div className="flex items-center">
+                        <Home className="mr-2 h-4 w-4" />
+                        {room.room_number}
+                        {room.room_type && (
+                          <span className="ml-1 text-gray-500">({room.room_type})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Quick Templates */}
         <Card>
           <CardHeader className="pb-3">
@@ -276,7 +359,16 @@ export default function DeviceInputForm({ tenant }: DeviceInputFormProps) {
               className="w-full h-14 text-lg shadow-lg"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Saving...' : `Save ${devices.length} Device${devices.length > 1 ? 's' : ''}`}
+              {isSubmitting ? 'Saving...' : (
+                <>
+                  Save {devices.length} Device{devices.length > 1 ? 's' : ''}
+                  {selectedRoom && selectedRoom !== 'none' && (
+                    <span className="ml-1 font-normal">
+                      to {rooms.find(r => r.id === selectedRoom)?.room_number || 'Selected Room'}
+                    </span>
+                  )}
+                </>
+              )}
             </Button>
           </div>
         )}

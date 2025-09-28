@@ -6,13 +6,15 @@ import { ArrowLeft } from 'lucide-react'
 import PowerConsumptionReport from '@/components/power-consumption-report'
 
 interface ReportPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default function ReportPage({ params }: ReportPageProps) {
+export default async function ReportPage({ params }: ReportPageProps) {
+  const { id } = await params
+
   return (
     <Suspense fallback={<ReportLoading />}>
-      <ReportContent tenantId={params.id} />
+      <ReportContent tenantId={id} />
     </Suspense>
   )
 }

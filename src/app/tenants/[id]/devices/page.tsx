@@ -4,13 +4,15 @@ import { notFound } from 'next/navigation'
 import DeviceInputForm from '@/components/device-input-form'
 
 interface DeviceInputPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default function DeviceInputPage({ params }: DeviceInputPageProps) {
+export default async function DeviceInputPage({ params }: DeviceInputPageProps) {
+  const { id } = await params
+
   return (
     <Suspense fallback={<DeviceInputLoading />}>
-      <DeviceInputContent tenantId={params.id} />
+      <DeviceInputContent tenantId={id} />
     </Suspense>
   )
 }

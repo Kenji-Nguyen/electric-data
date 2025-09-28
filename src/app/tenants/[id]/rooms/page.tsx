@@ -10,13 +10,15 @@ import RoomCard from '@/components/room-card'
 import CreateRoomDialog from '@/components/create-room-dialog'
 
 interface RoomsPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default function RoomsPage({ params }: RoomsPageProps) {
+export default async function RoomsPage({ params }: RoomsPageProps) {
+  const { id } = await params
+
   return (
     <Suspense fallback={<RoomsLoading />}>
-      <RoomsContent tenantId={params.id} />
+      <RoomsContent tenantId={id} />
     </Suspense>
   )
 }
@@ -85,6 +87,13 @@ async function RoomsContent({ tenantId }: { tenantId: string }) {
         <div className="grid grid-cols-1 gap-3">
           <CreateRoomDialog tenantId={tenantId} />
 
+          <Link href={`/tenants/${tenantId}/devices`}>
+            <Button variant="outline" size="lg" className="w-full h-14 flex items-center justify-center">
+              <Zap className="mr-2 h-5 w-5" />
+              Add Devices (No Room)
+            </Button>
+          </Link>
+
           {rooms.length > 0 && (
             <Link href={`/tenants/${tenantId}/report`}>
               <Button variant="outline" size="lg" className="w-full h-14 flex items-center justify-center">
@@ -116,7 +125,7 @@ async function RoomsContent({ tenantId }: { tenantId: string }) {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              {rooms.map((room: any) => (
+              {rooms.map((room) => (
                 <RoomCard
                   key={room.id}
                   room={room}

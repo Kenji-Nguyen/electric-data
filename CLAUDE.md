@@ -27,19 +27,19 @@ This application enables hotel management to track electrical devices and their 
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server with Turbopack
-npm run dev
+pnpm run dev
 
 # Build for production
-npm run build
+pnpm run build
 
 # Start production server
-npm start
+pnpm start
 
 # Run linting
-npm run lint
+pnpm run lint
 
 # Database operations (once configured)
 # Apply SQL schema to Supabase manually or via CLI
@@ -324,13 +324,13 @@ For other platforms, ensure Node.js 18+ support and proper environment variable 
 
 ```bash
 # Unit tests (when configured)
-npm run test
+pnpm run test
 
 # Type checking
 npx tsc --noEmit
 
 # Linting
-npm run lint
+pnpm run lint
 ```
 
 ## Troubleshooting
@@ -345,10 +345,10 @@ npm run lint
 ### Debug Commands
 ```bash
 # Check environment variables
-npm run dev -- --inspect
+pnpm run dev -- --inspect
 
 # Verbose build output
-npm run build -- --debug
+pnpm run build -- --debug
 
 # Database connection test
 npx tsx scripts/test-db.ts

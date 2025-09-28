@@ -4,13 +4,15 @@ import { notFound } from 'next/navigation'
 import RoomDeviceInputForm from '@/components/room-device-input-form'
 
 interface RoomDeviceInputPageProps {
-  params: { id: string; roomId: string }
+  params: Promise<{ id: string; roomId: string }>
 }
 
-export default function RoomDeviceInputPage({ params }: RoomDeviceInputPageProps) {
+export default async function RoomDeviceInputPage({ params }: RoomDeviceInputPageProps) {
+  const { id, roomId } = await params
+
   return (
     <Suspense fallback={<DeviceInputLoading />}>
-      <DeviceInputContent tenantId={params.id} roomId={params.roomId} />
+      <DeviceInputContent tenantId={id} roomId={roomId} />
     </Suspense>
   )
 }

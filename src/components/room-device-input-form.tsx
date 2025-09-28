@@ -242,7 +242,7 @@ export default function RoomDeviceInputForm({ tenant, room, existingDevices }: R
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-4 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
           <Link href={`/tenants/${tenant.id}`} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
             <ArrowLeft className="h-5 w-5" />
           </Link>
@@ -261,7 +261,7 @@ export default function RoomDeviceInputForm({ tenant, room, existingDevices }: R
         </div>
       </div>
 
-      <div className="px-4 py-6 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
         {/* Current Devices - Show detailed list with edit/delete */}
         {existingDevices.length > 0 && (
           <Card>

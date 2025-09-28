@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase'
+import { createServerClient, type ElectricalDevice } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -302,7 +302,7 @@ export async function getTenantDashboard(tenantId: string) {
     // Calculate metrics
     const roomsWithMetrics = (rooms || []).map(room => {
       const devices = room.electrical_devices || []
-      const dailyWattHours = devices.reduce((total, device) => {
+      const dailyWattHours = devices.reduce((total: number, device: ElectricalDevice) => {
         return total + (device.power_watts * device.usage_hours_per_day)
       }, 0)
 

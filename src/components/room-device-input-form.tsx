@@ -6,20 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { ArrowLeft, Plus, Trash2, Zap, Clock, Package, ArrowRight, Home, Edit, MoreVertical } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Zap, Clock, Package, ArrowRight, Edit, MoreVertical } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   DropdownMenu,
@@ -510,6 +502,81 @@ export default function RoomDeviceInputForm({ tenant, room, existingDevices }: R
             </Button>
           </div>
         )}
+
+        {/* Edit Device Modal */}
+        <Dialog open={!!editingDevice} onOpenChange={(open) => !open && setEditingDevice(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Device</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label htmlFor="editDeviceName">Device Name</Label>
+                <Input
+                  id="editDeviceName"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  placeholder="e.g., Living Room TV"
+                  className="h-12 text-lg"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editPowerWatts" className="flex items-center">
+                    <Zap className="mr-1 h-4 w-4" />
+                    Power (Watts)
+                  </Label>
+                  <Input
+                    id="editPowerWatts"
+                    type="number"
+                    value={editForm.powerWatts}
+                    onChange={(e) => setEditForm({ ...editForm, powerWatts: e.target.value })}
+                    placeholder="100"
+                    className="h-12 text-lg"
+                    inputMode="numeric"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="editUsageHours" className="flex items-center">
+                    <Clock className="mr-1 h-4 w-4" />
+                    Hours/Day
+                  </Label>
+                  <Input
+                    id="editUsageHours"
+                    type="number"
+                    step="0.5"
+                    max="24"
+                    value={editForm.usageHoursPerDay}
+                    onChange={(e) => setEditForm({ ...editForm, usageHoursPerDay: e.target.value })}
+                    placeholder="8"
+                    className="h-12 text-lg"
+                    inputMode="decimal"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setEditingDevice(null)}
+                  disabled={isEditing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={saveEdit}
+                  disabled={isEditing || !editForm.name || !editForm.powerWatts || !editForm.usageHoursPerDay}
+                >
+                  {isEditing ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

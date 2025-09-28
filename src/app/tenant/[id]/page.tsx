@@ -1,26 +1,25 @@
 import { Suspense } from 'react'
-import { db } from '@/lib/db'
-import { tenants, electricalDevices } from '@/schema'
-import { eq } from 'drizzle-orm'
+import { createServerClient, type Tenant, type ElectricalDevice } from '@/lib/supabase'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Plus } from 'lucide-react'
 import Link from 'next/link'
-import type { ElectricalDevice } from '@/schema'
 
 interface Props {
   params: { id: string }
 }
 
 export default async function TenantPage({ params }: Props) {
-  const tenant = await db
-    .select()
-    .from(tenants)
-    .where(eq(tenants.id, params.id))
-    .then(rows => rows[0])
+  const supabase = createServerClient()
 
-  if (!tenant) {
+  const { data: tenant, error } = await supabase
+    .from('tenants')
+    .select('*')
+    .eq('id', params.id)
+    .single()
+
+  if (error || !tenant) {
     notFound()
   }
 
@@ -35,7 +34,7 @@ export default async function TenantPage({ params }: Props) {
         </Button>
         <h1 className="text-3xl font-bold">{tenant.name}</h1>
         <p className="text-muted-foreground">
-          Created: {new Date(tenant.createdAt).toLocaleDateString()}
+          Created: {new Date(tenant.created_at).toLocaleDateString()}
         </p>
       </div>
 
@@ -73,12 +72,23 @@ export default async function TenantPage({ params }: Props) {
 }
 
 async function DevicesContent({ tenantId }: { tenantId: string }) {
-  const devices = await db
-    .select()
-    .from(electricalDevices)
-    .where(eq(electricalDevices.tenantId, tenantId))
+  const supabase = createServerClient()
 
-  if (devices.length === 0) {
+  const { data: devices, error } = await supabase
+    .from('electrical_devices')
+    .select('*')
+    .eq('tenant_id', tenantId)
+
+  if (error) {
+    console.error('Error fetching devices:', error)
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Error loading devices</p>
+      </div>
+    )
+  }
+
+  if (!devices || devices.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground mb-4">No devices found</p>
@@ -101,16 +111,16 @@ async function DevicesContent({ tenantId }: { tenantId: string }) {
 }
 
 function DeviceCard({ device }: { device: ElectricalDevice }) {
-  const dailyConsumption = Number(device.powerWatts) * Number(device.usageHoursPerDay)
+  const dailyConsumption = Number(device.power_watts) * Number(device.usage_hours_per_day)
   const monthlyConsumption = dailyConsumption * 30
 
   return (
     <div className="border rounded-lg p-4">
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="font-semibold">{device.deviceName}</h3>
+          <h3 className="font-semibold">{device.device_name}</h3>
           <p className="text-sm text-muted-foreground">
-            {device.powerWatts}W • {device.usageHoursPerDay}h/day
+            {device.power_watts}W • {device.usage_hours_per_day}h/day
           </p>
         </div>
         <div className="text-right">
@@ -127,13 +137,23 @@ function DeviceCard({ device }: { device: ElectricalDevice }) {
 }
 
 async function ConsumptionSummary({ tenantId }: { tenantId: string }) {
-  const devices = await db
-    .select()
-    .from(electricalDevices)
-    .where(eq(electricalDevices.tenantId, tenantId))
+  const supabase = createServerClient()
+
+  const { data: devices, error } = await supabase
+    .from('electrical_devices')
+    .select('*')
+    .eq('tenant_id', tenantId)
+
+  if (error || !devices) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Error loading consumption data</p>
+      </div>
+    )
+  }
 
   const totalDailyConsumption = devices.reduce((sum, device) => {
-    return sum + (Number(device.powerWatts) * Number(device.usageHoursPerDay))
+    return sum + (Number(device.power_watts) * Number(device.usage_hours_per_day))
   }, 0)
 
   const monthlyConsumption = totalDailyConsumption * 30

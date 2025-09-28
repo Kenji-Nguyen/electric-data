@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Electric Data - Tenant Energy Management",
-  description: "Manage tenant electrical device consumption with Next.js, Supabase, and Drizzle ORM",
+  description: "Manage tenant electrical device consumption with Next.js and Supabase",
 };
 
 export default function RootLayout({

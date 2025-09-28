@@ -1,15 +1,27 @@
-# Electric Data - Next.js Project
+# Electric Data - Hotel Device Management System
 
-A modern Next.js 15 application built with App Router, Server Components, Supabase, and Drizzle ORM.
+A modern Next.js 15 application for managing electrical devices in hotels, built with App Router, Server Components, and Supabase.
+
+## Project Overview
+
+This application enables hotel management to track electrical devices and their power consumption across multiple properties. It features a mobile-first design with quick device templates and batch input capabilities.
+
+### Key Features
+
+- **Multi-tenant Management**: Separate hotels/properties with isolated device data
+- **Mobile-First UI**: Optimized for on-the-go device input with large touch targets
+- **Device Templates**: Quick access to common electrical devices with preset power ratings
+- **Batch Input**: Add multiple devices efficiently with real-time power calculation
+- **TypeScript Safety**: Full type safety with Supabase-generated types
 
 ## Tech Stack
 
 - **Framework**: Next.js 15.5.4 with App Router
 - **Language**: TypeScript 5
 - **Database**: Supabase PostgreSQL
-- **ORM**: Drizzle ORM 0.44.5
 - **Styling**: Tailwind CSS 4 + shadcn/ui
 - **Development**: Turbopack for fast builds
+- **Validation**: Zod for server-side validation
 
 ## Development Commands
 
@@ -30,9 +42,7 @@ npm start
 npm run lint
 
 # Database operations (once configured)
-npx drizzle-kit generate    # Generate migrations
-npx drizzle-kit migrate     # Run migrations
-npx drizzle-kit studio      # Open Drizzle Studio
+# Apply SQL schema to Supabase manually or via CLI
 ```
 
 ## Environment Setup
@@ -45,11 +55,6 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# Database URL for Drizzle
-DATABASE_URL=postgresql://user:password@host:port/database
-
-# Optional: Direct connection for migrations
-DIRECT_URL=postgresql://user:password@host:port/database
 ```
 
 ## Project Structure
@@ -65,12 +70,10 @@ src/
 │   ├── ui/                # shadcn/ui components
 │   └── [features]/        # Feature-specific components
 ├── lib/
-│   ├── db.ts              # Drizzle ORM configuration
-│   ├── supabase.ts        # Supabase client setup
+│   ├── supabase.ts        # Supabase client setup and types
 │   └── utils.ts           # Utility functions
-├── actions/               # Server Actions
+├── actions/               # Server Actions for device operations
 ├── types/                 # TypeScript type definitions
-└── schema/               # Database schema (Drizzle)
 ```
 
 ## Architecture Principles
@@ -81,14 +84,83 @@ src/
 - **Client Components**: Only when interactivity is needed
 
 ### Database Layer
-- **Drizzle ORM**: Type-safe database operations
-- **Supabase**: PostgreSQL database and real-time features
-- **Schema-driven**: Database schema defines TypeScript types
+- **Supabase**: PostgreSQL database with built-in authentication and real-time features
+- **Type Safety**: Generated TypeScript types from database schema
+- **Server Actions**: Secure server-side database operations
 
 ### Styling Approach
 - **Tailwind CSS**: Utility-first styling
 - **shadcn/ui**: Pre-built, customizable components
 - **CSS Variables**: Theme configuration and customization
+- **Mobile-First**: Responsive design optimized for mobile devices
+
+## Database Schema
+
+### Tables
+
+#### `tenants`
+Stores hotel/property information:
+```sql
+CREATE TABLE tenants (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+```
+
+#### `electrical_devices`
+Stores electrical device data for each tenant:
+```sql
+CREATE TABLE electrical_devices (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  device_name VARCHAR(255) NOT NULL,
+  power_watts DECIMAL(10, 2) NOT NULL,
+  usage_hours_per_day DECIMAL(4, 2) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+```
+
+### Database Setup
+
+1. Copy the SQL schema from `supabase-schema.sql`
+2. Run in Supabase SQL Editor or via CLI
+3. Enable Row Level Security (RLS) for production use
+
+## Application Flow
+
+### User Journey
+
+1. **Select Hotel** (`/tenants`)
+   - View list of existing hotels/tenants
+   - Large, touch-friendly cards with hotel icons
+   - Option to add new hotel
+
+2. **Add Devices** (`/tenants/[id]/devices`)
+   - Quick templates with common devices (LED bulbs, AC units, etc.)
+   - Category-based filtering (Lighting, HVAC, Kitchen, Electronics)
+   - Manual device input with power and usage validation
+   - Real-time power consumption totals
+   - Batch saving with optimistic updates
+
+### Mobile-First Design Features
+
+- **Large Touch Targets**: Minimum 44px for all interactive elements
+- **Sticky Headers**: Important context always visible
+- **Category Filters**: Horizontal scrolling chips for template categories
+- **Numeric Inputs**: Optimized keyboards for power/hours entry
+- **Visual Feedback**: Active states and loading indicators
+- **Progressive Enhancement**: Works without JavaScript
+
+### Device Templates
+
+Predefined templates with power ratings:
+- **Lighting**: LED Bulb (10W), Fluorescent (40W)
+- **HVAC**: Ceiling Fan (75W), Air Conditioner (2000W)
+- **Kitchen**: Refrigerator (150W), Microwave (1000W), Coffee Maker (800W)
+- **Electronics**: Television (100W), Computer (300W)
 
 ## Code Conventions
 
@@ -105,10 +177,10 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 
 // 2. Third-party libraries
-import { sql } from 'drizzle-orm'
+// (third-party imports go here)
 
 // 3. Internal imports (absolute paths)
-import { db } from '@/lib/db'
+import { createServerClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 
 // 4. Relative imports
@@ -143,37 +215,68 @@ export default async function UsersPage() {
 ```typescript
 'use server'
 
+import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { z } from 'zod'
 
-export async function createUserAction(formData: FormData) {
-  // Validation
-  const name = formData.get('name') as string
-  if (!name) throw new Error('Name is required')
+// Input validation schema
+const DeviceSchema = z.object({
+  name: z.string().min(1, 'Device name is required'),
+  powerWatts: z.number().positive('Power must be positive'),
+  usageHoursPerDay: z.number().min(0).max(24, 'Usage hours must be between 0 and 24'),
+})
 
-  // Database operation
-  const [user] = await db.insert(usersTable).values({ name }).returning()
+export async function saveDevices(tenantId: string, devices: DeviceInput[]) {
+  try {
+    // Validate input
+    const validatedDevices = z.array(DeviceSchema).parse(devices)
 
-  // Revalidation and redirect
-  revalidatePath('/users')
-  redirect(`/users/${user.id}`)
+    if (validatedDevices.length === 0) {
+      return { success: false, error: 'No devices to save' }
+    }
+
+    const supabase = createServerClient()
+
+    // Database operation
+    const { error } = await supabase
+      .from('electrical_devices')
+      .insert(validatedDevices.map(device => ({
+        tenant_id: tenantId,
+        device_name: device.name,
+        power_watts: device.powerWatts,
+        usage_hours_per_day: device.usageHoursPerDay,
+      })))
+
+    if (error) {
+      return { success: false, error: 'Failed to save devices to database' }
+    }
+
+    // Revalidation
+    revalidatePath(`/tenants/${tenantId}/devices`)
+
+    return { success: true, message: `Successfully saved ${validatedDevices.length} device(s)` }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: 'Invalid device data provided' }
+    }
+    return { success: false, error: 'Failed to save devices. Please try again.' }
+  }
 }
 ```
 
 ## Development Workflow
 
 1. **Feature Development**:
-   - Create schema in `/src/schema/`
-   - Generate and run migrations
+   - Design database schema in Supabase SQL Editor
+   - Update TypeScript types in `/src/lib/supabase.ts`
    - Build Server Components for UI
    - Add Server Actions for mutations
    - Add shadcn/ui components as needed
 
 2. **Database Changes**:
-   - Update schema files
-   - Generate migrations: `npx drizzle-kit generate`
-   - Run migrations: `npx drizzle-kit migrate`
-   - Update TypeScript types
+   - Update SQL schema in Supabase
+   - Update TypeScript types in `/src/lib/supabase.ts`
+   - Test with `createServerClient()` in Server Actions
 
 3. **Component Development**:
    - Start with Server Components
@@ -190,7 +293,7 @@ export async function createUserAction(formData: FormData) {
 - Optimize images with Next.js Image component
 
 ### Type Safety
-- Define database schema with Drizzle
+- Define database schema in Supabase
 - Use TypeScript strict mode
 - Create shared types in `/src/types/`
 - Validate form data in Server Actions
@@ -235,7 +338,7 @@ npm run lint
 ### Common Issues
 
 1. **Database Connection**: Verify environment variables and network access
-2. **Type Errors**: Regenerate Drizzle types after schema changes
+2. **Type Errors**: Update TypeScript types in supabase.ts after schema changes
 3. **Build Errors**: Check for Client Component boundaries
 4. **Styling Issues**: Verify Tailwind CSS configuration
 
@@ -254,7 +357,6 @@ npx tsx scripts/test-db.ts
 ## Resources
 
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Drizzle ORM Documentation](https://orm.drizzle.team)
 - [Supabase Documentation](https://supabase.com/docs)
 - [shadcn/ui Documentation](https://ui.shadcn.com)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)

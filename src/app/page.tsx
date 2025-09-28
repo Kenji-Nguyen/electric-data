@@ -69,8 +69,6 @@ export default function Home() {
           <span>•</span>
           <span>Supabase</span>
           <span>•</span>
-          <span>Drizzle ORM</span>
-          <span>•</span>
           <span>shadcn/ui</span>
           <span>•</span>
           <span>Tailwind CSS</span>

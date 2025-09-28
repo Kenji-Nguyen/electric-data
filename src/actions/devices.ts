@@ -1,8 +1,6 @@
 'use server'
 
-import { db } from '@/lib/db'
-import { electricalDevices } from '@/schema'
-import { eq } from 'drizzle-orm'
+import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -28,14 +26,25 @@ export async function createDeviceAction(formData: FormData) {
   }
 
   try {
-    const [device] = await db
-      .insert(electricalDevices)
-      .values({
-        ...validatedFields.data,
-        powerWatts: validatedFields.data.powerWatts.toString(),
-        usageHoursPerDay: validatedFields.data.usageHoursPerDay.toString(),
+    const supabase = createServerClient()
+
+    const { data: device, error } = await supabase
+      .from('electrical_devices')
+      .insert({
+        tenant_id: validatedFields.data.tenantId,
+        device_name: validatedFields.data.deviceName,
+        power_watts: validatedFields.data.powerWatts,
+        usage_hours_per_day: validatedFields.data.usageHoursPerDay,
       })
-      .returning()
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return {
+        errors: { _form: ['Failed to create device'] },
+      }
+    }
 
     revalidatePath(`/tenant/${validatedFields.data.tenantId}`)
     revalidatePath('/tenants')
@@ -63,15 +72,24 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
   }
 
   try {
-    await db
-      .update(electricalDevices)
-      .set({
-        deviceName: validatedFields.data.deviceName,
-        powerWatts: validatedFields.data.powerWatts.toString(),
-        usageHoursPerDay: validatedFields.data.usageHoursPerDay.toString(),
-        updatedAt: new Date(),
+    const supabase = createServerClient()
+
+    const { error } = await supabase
+      .from('electrical_devices')
+      .update({
+        device_name: validatedFields.data.deviceName,
+        power_watts: validatedFields.data.powerWatts,
+        usage_hours_per_day: validatedFields.data.usageHoursPerDay,
+        updated_at: new Date().toISOString(),
       })
-      .where(eq(electricalDevices.id, deviceId))
+      .eq('id', deviceId)
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return {
+        errors: { _form: ['Failed to update device'] },
+      }
+    }
 
     revalidatePath('/tenants')
     return { success: true }
@@ -85,9 +103,19 @@ export async function updateDeviceAction(deviceId: string, formData: FormData) {
 
 export async function deleteDeviceAction(deviceId: string) {
   try {
-    await db
-      .delete(electricalDevices)
-      .where(eq(electricalDevices.id, deviceId))
+    const supabase = createServerClient()
+
+    const { error } = await supabase
+      .from('electrical_devices')
+      .delete()
+      .eq('id', deviceId)
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return {
+        errors: { _form: ['Failed to delete device'] },
+      }
+    }
 
     revalidatePath('/tenants')
     return { success: true }

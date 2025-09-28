@@ -101,34 +101,7 @@ export default function PowerConsumptionReport({ tenant, roomsWithDevices }: Pow
 
   return (
     <div className="px-4 py-6 space-y-6">
-      {/* Electricity Price Input */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center">
-            <DollarSign className="mr-2 h-5 w-5" />
-            Electricity Rate
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label htmlFor="pricePerKwh">Price per kWh ($)</Label>
-            <Input
-              id="pricePerKwh"
-              type="number"
-              step="0.01"
-              value={pricePerKwh}
-              onChange={(e) => setPricePerKwh(e.target.value)}
-              placeholder="0.15"
-              className="h-12 text-lg"
-            />
-            <p className="text-sm text-gray-500">
-              Enter your local electricity rate per kilowatt-hour
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Overview */}
+      {/* 1. OVERVIEW - Summary Stats */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center">
@@ -177,9 +150,9 @@ export default function PowerConsumptionReport({ tenant, roomsWithDevices }: Pow
         </CardContent>
       </Card>
 
-      {/* Room Breakdown */}
+      {/* 2. ROOMS - Quick Overview */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Room Breakdown</h3>
+        <h3 className="text-lg font-semibold">Rooms Overview</h3>
 
         {sortedRooms.length === 0 ? (
           <Card>
@@ -192,6 +165,101 @@ export default function PowerConsumptionReport({ tenant, roomsWithDevices }: Pow
             </CardContent>
           </Card>
         ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedRooms.map((roomData) => {
+              const { room, deviceCount, dailyKwh, yearlyKwh, yearlyCost } = roomData
+              const percentageOfTotal = totals.yearlyKwh > 0 ? (yearlyKwh / totals.yearlyKwh) * 100 : 0
+
+              return (
+                <Card key={room.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <div className="text-lg">
+                          {getRoomTypeIcon(room.room_type)}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold">{room.room_number}</h4>
+                          {room.room_type && (
+                            <Badge
+                              variant="secondary"
+                              className={`text-xs ${getRoomTypeColor(room.room_type)}`}
+                            >
+                              {room.room_type}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-blue-600">
+                          {percentageOfTotal.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">{deviceCount} devices</span>
+                        <span className="font-medium">{dailyKwh.toFixed(1)} kWh/day</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Yearly cost</span>
+                        <span className="font-medium text-green-600">${yearlyCost.toFixed(0)}</span>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    {totals.yearlyKwh > 0 && (
+                      <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full"
+                          style={{ width: `${Math.min(percentageOfTotal, 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 3. DETAILED REPORT - Electricity Rate & Full Breakdown */}
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold">Detailed Analysis</h3>
+
+        {/* Electricity Price Input */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center">
+              <DollarSign className="mr-2 h-5 w-5" />
+              Electricity Rate
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="pricePerKwh">Price per kWh ($)</Label>
+              <Input
+                id="pricePerKwh"
+                type="number"
+                step="0.01"
+                value={pricePerKwh}
+                onChange={(e) => setPricePerKwh(e.target.value)}
+                placeholder="0.15"
+                className="h-12 text-lg"
+              />
+              <p className="text-sm text-gray-500">
+                Enter your local electricity rate per kilowatt-hour
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Detailed Room Breakdown */}
+        <div className="space-y-4">
+          <h4 className="text-md font-semibold">Complete Room Breakdown</h4>
+
           <div className="space-y-4">
             {sortedRooms.map((roomData) => {
               const { room, deviceCount, dailyKwh, monthlyKwh, yearlyKwh, yearlyCost } = roomData
@@ -262,7 +330,7 @@ export default function PowerConsumptionReport({ tenant, roomsWithDevices }: Pow
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${percentageOfTotal}%` }}
+                          style={{ width: `${Math.min(percentageOfTotal, 100)}%` }}
                         />
                       </div>
                     )}
@@ -271,7 +339,7 @@ export default function PowerConsumptionReport({ tenant, roomsWithDevices }: Pow
               )
             })}
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

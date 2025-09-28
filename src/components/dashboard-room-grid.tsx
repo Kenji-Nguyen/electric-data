@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Zap } from 'lucide-react'
 import Link from 'next/link'
@@ -95,61 +95,48 @@ export default function DashboardRoomGrid({ rooms, tenantId }: DashboardRoomGrid
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-3">
       {rooms.map((room) => (
         <Link key={room.id} href={`/tenants/${tenantId}/rooms/${room.id}`}>
-          <Card className="hover:shadow-md transition-shadow h-full">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="text-lg">
+          <Card className="hover:shadow-md transition-shadow w-full">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                {/* Left side - Room info */}
+                <div className="flex items-center space-x-4">
+                  <div className="text-2xl">
                     {getRoomTypeIcon(room.room_type)}
                   </div>
                   <div>
-                    <CardTitle className="text-base">{room.room_number}</CardTitle>
-                    {room.room_type && (
-                      <Badge
-                        variant="secondary"
-                        className={`text-xs ${getRoomTypeColor(room.room_type)}`}
-                      >
-                        {room.room_type}
-                      </Badge>
-                    )}
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h3 className="text-lg font-semibold">{room.room_number}</h3>
+                      {room.room_type && (
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs ${getRoomTypeColor(room.room_type)}`}
+                        >
+                          {room.room_type}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <Zap className="mr-1 h-3 w-3" />
+                        <span>{room.deviceCount} device{room.deviceCount !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className={`flex items-center space-x-1`}>
+                        <div className={`w-2 h-2 rounded-full ${getHealthColor(room.healthStatus)}`} />
+                        <span>{getHealthText(room.healthStatus)}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Health Status Indicator */}
-                <div className="flex items-center space-x-1">
-                  <div className={`w-2 h-2 rounded-full ${getHealthColor(room.healthStatus)}`} />
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-3">
-              {/* Device Count */}
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center text-gray-600">
-                  <Zap className="mr-1 h-3 w-3" />
-                  <span>{room.deviceCount} device{room.deviceCount !== 1 ? 's' : ''}</span>
-                </div>
-              </div>
-
-              {/* Power Usage */}
-              <div className="space-y-1">
-                <div className="text-lg font-bold text-center">
-                  {room.dailyKwh} kWh
-                </div>
-                <div className="text-xs text-gray-500 text-center">per day</div>
-              </div>
-
-              {/* Health Status */}
-              <div className="text-center">
-                <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                  room.healthStatus === 'good' ? 'bg-green-100 text-green-800' :
-                  room.healthStatus === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {getHealthText(room.healthStatus)}
+                {/* Right side - Power usage */}
+                <div className="text-right">
+                  <div className="text-xl font-bold text-gray-900">
+                    {room.dailyKwh} kWh
+                  </div>
+                  <div className="text-sm text-gray-500">per day</div>
                 </div>
               </div>
             </CardContent>

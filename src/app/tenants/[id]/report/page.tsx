@@ -53,7 +53,7 @@ async function ReportContent({ tenantId }: { tenantId: string }) {
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b px-4 py-4 sticky top-0 z-10">
           <div className="flex items-center justify-between">
-            <Link href={`/tenants/${tenantId}/rooms`} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
+            <Link href={`/tenants/${tenantId}`} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <h1 className="text-lg font-semibold text-center flex-1">Power Report</h1>
@@ -71,8 +71,8 @@ async function ReportContent({ tenantId }: { tenantId: string }) {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-4 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <Link href={`/tenants/${tenantId}/rooms`} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link href={`/tenants/${tenantId}`} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-lg font-semibold text-center flex-1">Power Report</h1>
@@ -80,10 +80,12 @@ async function ReportContent({ tenantId }: { tenantId: string }) {
         </div>
       </div>
 
-      <PowerConsumptionReport
-        tenant={tenant}
-        roomsWithDevices={roomsWithDevices || []}
-      />
+      <div className="max-w-6xl mx-auto">
+        <PowerConsumptionReport
+          tenant={tenant}
+          roomsWithDevices={roomsWithDevices || []}
+        />
+      </div>
     </div>
   )
 }

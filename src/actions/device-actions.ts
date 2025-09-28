@@ -151,3 +151,78 @@ export async function getDevicesByRoom(roomId: string) {
     return { success: false, error: 'Failed to fetch devices', devices: [] }
   }
 }
+
+export async function updateDevice(deviceId: string, deviceData: DeviceInput) {
+  try {
+    const validatedDevice = DeviceSchema.parse(deviceData)
+    const supabase = createServerClient()
+
+    const { data, error } = await supabase
+      .from('electrical_devices')
+      .update({
+        device_name: validatedDevice.name,
+        power_watts: validatedDevice.powerWatts,
+        usage_hours_per_day: validatedDevice.usageHoursPerDay,
+      })
+      .eq('id', deviceId)
+      .select('tenant_id, room_id')
+      .single()
+
+    if (error) {
+      console.error('Error updating device:', error)
+      return { success: false, error: 'Failed to update device' }
+    }
+
+    // Revalidate relevant pages
+    revalidatePath(`/tenants/${data.tenant_id}`)
+    revalidatePath(`/tenants/${data.tenant_id}/rooms/${data.room_id}`)
+    revalidatePath(`/tenants/${data.tenant_id}/rooms/${data.room_id}/devices`)
+
+    return { success: true, message: 'Device updated successfully' }
+  } catch (error) {
+    console.error('Error updating device:', error)
+
+    if (error instanceof z.ZodError) {
+      return { success: false, error: 'Invalid device data provided' }
+    }
+
+    return { success: false, error: 'Failed to update device. Please try again.' }
+  }
+}
+
+export async function deleteDevice(deviceId: string) {
+  try {
+    const supabase = createServerClient()
+
+    // Get device details for revalidation
+    const { data: device, error: deviceError } = await supabase
+      .from('electrical_devices')
+      .select('tenant_id, room_id')
+      .eq('id', deviceId)
+      .single()
+
+    if (deviceError || !device) {
+      return { success: false, error: 'Device not found' }
+    }
+
+    const { error } = await supabase
+      .from('electrical_devices')
+      .delete()
+      .eq('id', deviceId)
+
+    if (error) {
+      console.error('Error deleting device:', error)
+      return { success: false, error: 'Failed to delete device' }
+    }
+
+    // Revalidate relevant pages
+    revalidatePath(`/tenants/${device.tenant_id}`)
+    revalidatePath(`/tenants/${device.tenant_id}/rooms/${device.room_id}`)
+    revalidatePath(`/tenants/${device.tenant_id}/rooms/${device.room_id}/devices`)
+
+    return { success: true, message: 'Device deleted successfully' }
+  } catch (error) {
+    console.error('Error deleting device:', error)
+    return { success: false, error: 'Failed to delete device. Please try again.' }
+  }
+}

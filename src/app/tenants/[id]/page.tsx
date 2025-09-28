@@ -34,7 +34,7 @@ async function DashboardContent({ tenantId }: { tenantId: string }) {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-4 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link href="/tenants" className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
             <ArrowLeft className="h-5 w-5" />
           </Link>
@@ -43,7 +43,7 @@ async function DashboardContent({ tenantId }: { tenantId: string }) {
         </div>
       </div>
 
-      <div className="px-4 py-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Overview Header */}
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900">Hotel Dashboard</h2>
@@ -52,39 +52,49 @@ async function DashboardContent({ tenantId }: { tenantId: string }) {
           </p>
         </div>
 
-        {/* Stats Section */}
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Overview</h3>
-          <DashboardStats stats={stats} />
-        </div>
+        {/* Desktop Layout */}
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8 space-y-6 lg:space-y-0">
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 gap-3">
-          <Link href={`/tenants/${tenantId}/rooms/new`}>
-            <Button size="lg" className="w-full h-14 flex items-center justify-center">
-              <Plus className="mr-2 h-5 w-5" />
-              Add New Room
-            </Button>
-          </Link>
-
-          {rooms.length > 0 && (
-            <Link href={`/tenants/${tenantId}/report`}>
-              <Button variant="outline" size="lg" className="w-full h-14 flex items-center justify-center">
-                <FileText className="mr-2 h-5 w-5" />
-                View Detailed Report
-              </Button>
-            </Link>
-          )}
-        </div>
-
-        {/* Rooms Grid */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold">
-              Rooms ({rooms.length})
-            </h3>
+          {/* Main Content - Rooms Grid */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Rooms Grid */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">
+                  Rooms ({rooms.length})
+                </h3>
+              </div>
+              <DashboardRoomGrid rooms={rooms} tenantId={tenantId} />
+            </div>
           </div>
-          <DashboardRoomGrid rooms={rooms} tenantId={tenantId} />
+
+          {/* Sidebar - Stats & Actions */}
+          <div className="lg:col-span-4 space-y-6">
+            {/* Stats Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Overview</h3>
+              <DashboardStats stats={stats} />
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 gap-3">
+              <Link href={`/tenants/${tenantId}/rooms/new`}>
+                <Button size="lg" className="w-full h-12 lg:h-14 flex items-center justify-center">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add New Room
+                </Button>
+              </Link>
+
+              {rooms.length > 0 && (
+                <Link href={`/tenants/${tenantId}/report`}>
+                  <Button variant="outline" size="lg" className="w-full h-12 lg:h-14 flex items-center justify-center">
+                    <FileText className="mr-2 h-5 w-5" />
+                    View Detailed Report
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

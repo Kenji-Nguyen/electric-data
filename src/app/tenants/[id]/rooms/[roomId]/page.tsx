@@ -6,7 +6,6 @@ import { ArrowLeft, Plus, Zap } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { getDevicesByRoom } from '@/actions/device-actions'
 
 interface RoomDetailPageProps {
@@ -106,7 +105,7 @@ async function RoomDetailContent({ tenantId, roomId }: { tenantId: string; roomI
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-4 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Link href={`/tenants/${tenantId}`} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
             <ArrowLeft className="h-5 w-5" />
           </Link>
@@ -115,7 +114,7 @@ async function RoomDetailContent({ tenantId, roomId }: { tenantId: string; roomI
         </div>
       </div>
 
-      <div className="px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Room Overview */}
         <Card>
           <CardHeader>
@@ -144,7 +143,7 @@ async function RoomDetailContent({ tenantId, roomId }: { tenantId: string; roomI
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Power Stats */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center p-3 bg-blue-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">{devices.length}</div>
                 <div className="text-sm text-blue-600">Device{devices.length !== 1 ? 's' : ''}</div>
@@ -153,20 +152,16 @@ async function RoomDetailContent({ tenantId, roomId }: { tenantId: string; roomI
                 <div className="text-2xl font-bold text-green-600">{dailyKwh.toFixed(1)}</div>
                 <div className="text-sm text-green-600">kWh/day</div>
               </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Monthly Consumption:</span>
-                <span className="font-medium">{monthlyKwh.toFixed(1)} kWh</span>
+              <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">{monthlyKwh.toFixed(0)}</div>
+                <div className="text-sm text-yellow-600">kWh/month</div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Estimated Monthly Cost:</span>
-                <span className="font-medium">${estimatedMonthlyCost.toFixed(2)}</span>
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">${estimatedMonthlyCost.toFixed(0)}</div>
+                <div className="text-sm text-red-600">Est. Monthly</div>
               </div>
             </div>
+
           </CardContent>
         </Card>
 

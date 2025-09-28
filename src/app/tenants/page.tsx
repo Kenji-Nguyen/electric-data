@@ -9,10 +9,12 @@ export default function TenantsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b px-4 py-6 sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-center">Select Hotel</h1>
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold text-center">Select Hotel</h1>
+        </div>
       </div>
 
-      <div className="px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         <div className="mb-6">
           <Button asChild size="lg" className="w-full h-14 text-lg">
             <Link href="/tenants/new">
@@ -58,7 +60,7 @@ async function TenantsContent() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       {tenantsList.map((tenant) => (
         <Link key={tenant.id} href={`/tenants/${tenant.id}`}>
           <Card className="hover:shadow-md transition-all duration-200 active:scale-95 border-2 hover:border-primary/20">

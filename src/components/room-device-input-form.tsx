@@ -13,10 +13,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft, Plus, Trash2, Zap, Clock, Package, ArrowRight, Home } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Zap, Clock, Package, ArrowRight, Home, Edit, MoreVertical } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
 import { Tenant, Room, ElectricalDevice } from '@/lib/supabase'
-import { saveDevicesToRoom, type DeviceInput } from '@/actions/device-actions'
+import { saveDevicesToRoom, updateDevice, deleteDevice, type DeviceInput } from '@/actions/device-actions'
 import { getNextRoom } from '@/actions/room-actions'
 import { useRouter } from 'next/navigation'
 
@@ -78,6 +91,14 @@ export default function RoomDeviceInputForm({ tenant, room, existingDevices }: R
   })
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [editingDevice, setEditingDevice] = useState<ElectricalDevice | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    powerWatts: '',
+    usageHoursPerDay: ''
+  })
+  const [isEditing, setIsEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [isNavigating, setIsNavigating] = useState(false)
 
   const filteredTemplates = selectedCategory === 'All'
@@ -144,8 +165,8 @@ export default function RoomDeviceInputForm({ tenant, room, existingDevices }: R
       if (result.success && result.nextRoom) {
         router.push(`/tenants/${tenant.id}/rooms/${result.nextRoom.id}/devices`)
       } else if (result.success && result.isLastRoom) {
-        // Last room - go back to rooms list
-        router.push(`/tenants/${tenant.id}/rooms`)
+        // Last room - go back to tenant dashboard
+        router.push(`/tenants/${tenant.id}`)
       } else {
         alert(result.error || 'Failed to navigate to next room')
       }
@@ -160,19 +181,77 @@ export default function RoomDeviceInputForm({ tenant, room, existingDevices }: R
   const saveAndReturn = async () => {
     const saved = await saveDevices()
     if (saved) {
-      router.push(`/tenants/${tenant.id}/rooms`)
+      router.push(`/tenants/${tenant.id}`)
     }
   }
 
   const totalPower = devices.reduce((sum, device) => sum + parseFloat(device.powerWatts || '0'), 0)
   const existingPower = existingDevices.reduce((sum, device) => sum + device.power_watts, 0)
 
+  const handleEditDevice = (device: ElectricalDevice) => {
+    setEditingDevice(device)
+    setEditForm({
+      name: device.device_name,
+      powerWatts: device.power_watts.toString(),
+      usageHoursPerDay: device.usage_hours_per_day.toString()
+    })
+  }
+
+  const saveEdit = async () => {
+    if (!editingDevice) return
+
+    setIsEditing(true)
+    try {
+      const result = await updateDevice(editingDevice.id, {
+        name: editForm.name,
+        powerWatts: parseFloat(editForm.powerWatts),
+        usageHoursPerDay: parseFloat(editForm.usageHoursPerDay)
+      })
+
+      if (result.success) {
+        setEditingDevice(null)
+        // Refresh the page to show updated data
+        router.refresh()
+      } else {
+        alert(result.error || 'Failed to update device')
+      }
+    } catch (error) {
+      console.error('Error updating device:', error)
+      alert('Failed to update device')
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  const handleDeleteDevice = async (deviceId: string) => {
+    if (!confirm('Are you sure you want to delete this device?')) {
+      return
+    }
+
+    setIsDeleting(deviceId)
+    try {
+      const result = await deleteDevice(deviceId)
+
+      if (result.success) {
+        // Refresh the page to show updated data
+        router.refresh()
+      } else {
+        alert(result.error || 'Failed to delete device')
+      }
+    } catch (error) {
+      console.error('Error deleting device:', error)
+      alert('Failed to delete device')
+    } finally {
+      setIsDeleting(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b px-4 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
-          <Link href={`/tenants/${tenant.id}/rooms`} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
+          <Link href={`/tenants/${tenant.id}`} className="p-2 -ml-2 hover:bg-gray-100 rounded-lg">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="text-center flex-1">
@@ -191,23 +270,62 @@ export default function RoomDeviceInputForm({ tenant, room, existingDevices }: R
       </div>
 
       <div className="px-4 py-6 space-y-6">
-        {/* Room Summary */}
+        {/* Current Devices - Show detailed list with edit/delete */}
         {existingDevices.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
-                <Home className="mr-2 h-5 w-5" />
-                Current Devices
+                <Zap className="mr-2 h-5 w-5" />
+                Current Devices ({existingDevices.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">
-                  {existingDevices.length} device{existingDevices.length !== 1 ? 's' : ''} installed
-                </p>
-                <p className="text-sm text-gray-600">
-                  Total Power: {existingPower.toLocaleString()}W
-                </p>
+              <div className="space-y-3">
+                {existingDevices.map((device) => (
+                  <div key={device.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{device.device_name}</h4>
+                      <p className="text-sm text-gray-600">
+                        {device.power_watts}W • {device.usage_hours_per_day}h/day
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="text-right text-sm">
+                        <div className="font-medium">{((device.power_watts * device.usage_hours_per_day) / 1000).toFixed(1)} kWh/day</div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isDeleting === device.id}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditDevice(device)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteDevice(device.id)}
+                            className="text-red-600 focus:text-red-600"
+                            disabled={isDeleting === device.id}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {isDeleting === device.id ? 'Deleting...' : 'Delete'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-2 border-t">
+                  <p className="text-sm text-gray-600">
+                    Total Power: <span className="font-medium">{existingPower.toLocaleString()}W</span>
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
